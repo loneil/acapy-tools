@@ -108,3 +108,30 @@ poetry install
     --cron-job-interval-days <optional: number of days between each cleanup, default is 7>
     
     ```
+
+### Anoncreds Repair:
+
+ * Repairs wallet data by validating revocation registry definitions and credential definitions against their corresponding private records.
+ * Removes orphaned records that lack matching private keys, which can occur due to incomplete transactions or corruption.
+ * Processes all profiles in a multi-tenant single wallet configuration.
+ * **Important:** Backup your wallet before running this operation. Records are permanently deleted and cannot be recovered without a backup.
+
+- `anoncreds-repair` (Repair wallet revocation registry and credential definition records):
+
+    ```
+    poetry run askar-tools \
+    --strategy anoncreds-repair \
+    --uri sqlite:///<path-to-wallet-db> \
+    --wallet-name <base wallet name> \
+    --wallet-key <base wallet key> \
+    --wallet-key-derivation-method <optional: default is ARGON2I_MOD>
+    ```
+
+    **What it does:**
+    - Iterates through all profiles in the wallet
+    - For each profile, verifies revocation registry definitions have corresponding private records
+    - For each profile, verifies credential definitions have both private records and key proof records
+    - Deletes revocation registry definition records and associated issuer records if private records are missing
+    - Deletes credential definition records and associated records if private or key proof records are missing
+    - Commits changes after processing all records in each profile
+

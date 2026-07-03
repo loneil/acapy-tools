@@ -7,6 +7,7 @@ import sys
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
+from askar_tools.anoncreds_repair import Repairer
 from askar_tools.credo_mediator_clean_up import CredoMediatorCleanUp
 from askar_tools.error import InvalidArgumentsError
 from askar_tools.exporter import Exporter
@@ -36,7 +37,14 @@ def config():
     parser.add_argument(
         "--strategy",
         required=True,
-        choices=["export", "mt-convert-to-mw", "tenant-import", "mediator-convert", "mediator-cleanup"],
+        choices=[
+            "export",
+            "mt-convert-to-mw",
+            "tenant-import",
+            "mediator-convert",
+            "mediator-cleanup",
+            "anoncreds-repair",
+        ],
         help=(
             "Specify migration strategy depending on database type, wallet "
             "management mode, and agent type."
@@ -153,7 +161,7 @@ def config():
         help=("Specify the dispatch type for the tenant wallet."),
         default="base",
     )
-    
+
     parser.add_argument(
         "--inactive-days-threshold",
         type=int,
@@ -183,7 +191,9 @@ def config():
     parser.add_argument(
         "--pickup-repository-uri",
         type=str,
-        help=("Specify the URI of the pickup repository for the mediator cleanup strategy."),
+        help=(
+            "Specify the URI of the pickup repository for the mediator cleanup strategy."
+        ),
     )
 
     args, _ = parser.parse_known_args(sys.argv[1:])
@@ -270,7 +280,9 @@ async def main(args):
         )
     elif args.strategy == "mediator-cleanup":
         if not args.pickup_repository_uri:
-            raise ValueError("--pickup-repository-uri is required for mediator-cleanup strategy")
+            raise ValueError(
+                "--pickup-repository-uri is required for mediator-cleanup strategy"
+            )
         pickup_repo_conn = PgConnection(args.pickup_repository_uri)
         await conn.connect()
         method = CredoMediatorCleanUp(
@@ -284,6 +296,14 @@ async def main(args):
             wallet_key_derivation_method=args.wallet_key_derivation_method,
             inactive_days_threshold=args.inactive_days_threshold,
             cron_job_interval_days=args.cron_job_interval_days,
+        )
+    elif args.strategy == "anoncreds-repair":
+        await conn.connect()
+        method = Repairer(
+            conn=conn,
+            wallet_name=args.wallet_name,
+            wallet_key=args.wallet_key,
+            wallet_key_derivation_method=args.wallet_key_derivation_method,
         )
     else:
         raise InvalidArgumentsError("Invalid strategy")
