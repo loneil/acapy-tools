@@ -1,4 +1,4 @@
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import asyncpg
 
@@ -26,8 +26,8 @@ class PgConnection(DbConnection):
             self._conn = await asyncpg.connect(
                 host=parts.hostname,
                 port=parts.port or 5432,
-                user=parts.username,
-                password=parts.password,
+                user=unquote(parts.username),
+                password=unquote(parts.password),
                 database=parts.path[1:],
             )
 
